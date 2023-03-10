@@ -8,20 +8,13 @@ import { ContactList } from './ContactList/ContactList';
 import { ContactFilter } from './ContactFilter/ContactFilter';
 
 export const App = () => {
-  const [contacts, setContacts] = useState([]);
+  const [contacts, setContacts] = useState(
+    () => JSON.parse(localStorage.getItem('contacts')) ?? []
+  );
   const [filter, setFilter] = useState('');
-  const [favourites, setFavourites] = useState([]);
-
-  useEffect(() => {
-    const parsedContacts = JSON.parse(localStorage.getItem('contacts'));
-    if (parsedContacts) {
-      setContacts(parsedContacts);
-    }
-    const savedFavourites = JSON.parse(localStorage.getItem('favourites'));
-    if (savedFavourites) {
-      setFavourites(savedFavourites);
-    }
-  }, []);
+  const [favourites, setFavourites] = useState(
+    () => JSON.parse(localStorage.getItem('favourites')) ?? []
+  );
 
   useEffect(() => {
     localStorage.setItem('contacts', JSON.stringify(contacts));
