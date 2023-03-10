@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Layout } from 'components/Layout/Layout';
@@ -7,36 +7,33 @@ import { ContactForm } from './ContactForm/ContactForm';
 import { ContactList } from './ContactList/ContactList';
 import { ContactFilter } from './ContactFilter/ContactFilter';
 
-export class App extends Component {
-  state = {
-    contacts: [],
-    filter: '',
-    favourites: [],
-  };
+export const App = () => {
+  const [contacts, setContacts] = useState([]);
+  const [filter, setFilter] = useState('');
+  const [favourites, setFavourites] = useState([]);
 
-  componentDidMount() {
+  useEffect(() => {
     const parsedContacts = JSON.parse(localStorage.getItem('contacts'));
     if (parsedContacts) {
-      this.setState({ contacts: parsedContacts });
+      setContacts(parsedContacts);
     }
     const savedFavourites = JSON.parse(localStorage.getItem('favourites'));
     if (savedFavourites) {
-      this.setState({ favourites: savedFavourites });
+      setFavourites(savedFavourites);
     }
-  }
+  }, []);
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.contacts !== prevState.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-    if (this.state.favourites !== prevState.favourites) {
-      localStorage.setItem('favourites', JSON.stringify(this.state.favourites));
-    }
-  }
+  useEffect(() => {
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
 
-  addContact = contact => {
+  useEffect(() => {
+    localStorage.setItem('favourites', JSON.stringify(favourites));
+  }, [favourites]);
+
+  const addContact = contact => {
     if (
-      this.state.contacts.some(item => {
+      contacts.some(item => {
         return item.name === contact.name;
       })
     ) {
@@ -49,7 +46,7 @@ export class App extends Component {
       return;
     }
     if (
-      this.state.contacts.some(item => {
+      contacts.some(item => {
         return item.number === contact.number;
       })
     ) {
@@ -61,9 +58,7 @@ export class App extends Component {
       );
       return;
     }
-    this.setState(({ contacts }) => ({
-      contacts: [...contacts, contact],
-    }));
+    setContacts(prevState => [...prevState, contact]);
     toast.success(
       <p>
         Contact <span style={{ color: 'green' }}>{contact.name}</span> added!
@@ -71,10 +66,8 @@ export class App extends Component {
     );
   };
 
-  deleteContact = contact => {
-    this.setState(({ contacts }) => ({
-      contacts: contacts.filter(({ id }) => id !== contact.id),
-    }));
+  const deleteContact = contact => {
+    setContacts(prevState => prevState.filter(({ id }) => id !== contact.id));
     toast.success(
       <p>
         Contact <span style={{ color: 'green' }}>{contact.name}</span> deleted!
@@ -82,11 +75,11 @@ export class App extends Component {
     );
   };
 
-  addContactToFav = contact => {
-    if (this.state.favourites.some(fav => fav.id === contact.id)) {
-      this.setState(({ favourites }) => ({
-        favourites: favourites.filter(({ id }) => id !== contact.id),
-      }));
+  const addContactToFav = contact => {
+    if (favourites.some(fav => fav.id === contact.id)) {
+      setFavourites(prevState =>
+        prevState.filter(({ id }) => id !== contact.id)
+      );
       toast.success(
         <p>
           Contact <span style={{ color: 'green' }}>{contact.name}</span> removed
@@ -95,12 +88,10 @@ export class App extends Component {
       );
       return;
     }
-    this.setState(({ favourites }) => ({
-      favourites: [
-        ...favourites.filter(({ id }) => id !== contact.id),
-        contact,
-      ],
-    }));
+    setFavourites(prevState => [
+      ...prevState.filter(({ id }) => id !== contact.id),
+      contact,
+    ]);
     toast.success(
       <p>
         Contact <span style={{ color: 'green' }}>{contact.name}</span> added to
@@ -109,20 +100,16 @@ export class App extends Component {
     );
   };
 
-  handleSetFilterValue = ({ target: { name, value } }) => {
-    this.setState({
-      [name]: value,
-    });
+  const handleSetFilterValue = ({ target: { value } }) => {
+    setFilter(value);
   };
 
-  handleFilterContact = () => {
+  const handleFilterContact = () => {
     if (
-      this.state.contacts.filter(contact => {
+      contacts.filter(contact => {
         return (
-          contact.name
-            .toLowerCase()
-            .includes(this.state.filter.toLowerCase().trim()) ||
-          contact.number.includes(this.state.filter.trim())
+          contact.name.toLowerCase().includes(filter.toLowerCase().trim()) ||
+          contact.number.includes(filter.trim())
         );
       }).length === 0
     ) {
@@ -131,13 +118,11 @@ export class App extends Component {
       });
     }
 
-    return this.state.contacts
+    return contacts
       .filter(contact => {
         return (
-          contact.name
-            .toLowerCase()
-            .includes(this.state.filter.toLowerCase().trim()) ||
-          contact.number.includes(this.state.filter.trim())
+          contact.name.toLowerCase().includes(filter.toLowerCase().trim()) ||
+          contact.number.includes(filter.trim())
         );
       })
       .sort((firstContact, secondContact) =>
@@ -145,28 +130,23 @@ export class App extends Component {
       );
   };
 
-  render() {
-    return (
-      <Layout>
-        <Section title="Phonebook">
-          <ContactForm onSubmit={this.addContact} />
+  return (
+    <Layout>
+      <Section title="Phonebook">
+        <ContactForm onSubmit={addContact} />
+      </Section>
+      {contacts.length > 0 && (
+        <Section title="Contacts">
+          <ContactFilter value={filter} onFilter={handleSetFilterValue} />
+          <ContactList
+            contacts={handleFilterContact()}
+            onDelete={deleteContact}
+            onFavorite={addContactToFav}
+            favourites={favourites}
+          />
         </Section>
-        {this.state.contacts.length > 0 && (
-          <Section title="Contacts">
-            <ContactFilter
-              value={this.state.filter}
-              onFilter={this.handleSetFilterValue}
-            />
-            <ContactList
-              contacts={this.handleFilterContact()}
-              onDelete={this.deleteContact}
-              onFavorite={this.addContactToFav}
-              favourites={this.state.favourites}
-            />
-          </Section>
-        )}
-        <ToastContainer newestOnTop={true} limit={5} autoClose={3000} />
-      </Layout>
-    );
-  }
-}
+      )}
+      <ToastContainer newestOnTop={true} limit={5} autoClose={3000} />
+    </Layout>
+  );
+};
